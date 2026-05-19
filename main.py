@@ -11,7 +11,7 @@ client = discord.Client(intents=intents)
 
 # 送りたいGIFのURL（Discord上に表示したいGIFのリンク）
 # ※GIPHYやTenorのリンク、またはDiscordにアップロードした画像のURLなど
-GIF_URL = "ここに送りたいGIFのURLを貼り付ける"
+GIF_URL = "https://raw.githubusercontent.com/anchu1024/uo-generator/7661fcbb07bcdb51abafc5d4fb751c18dd38447b/uo.gif"
 
 @client.event
 async def on_ready():
