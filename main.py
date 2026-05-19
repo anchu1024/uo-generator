@@ -1,5 +1,26 @@
 import os
 import discord
+from flask import Flask
+from threading import Thread
+
+# ==========================================
+# 1. 叩き起こされるためのWebサーバー設定 (Flask)
+# ==========================================
+app = Flask('')
+
+@app.route('/')
+def home():
+    # 叩き起こしサービスがアクセスしてきたら「生きてるよ」と返す
+    return "Botは正常に稼働しています！"
+
+def run_flask():
+    # Renderはデフォルトでポート10000番を使用するため指定
+    app.run(host='0.0.0.0', port=10000)
+
+def keep_alive():
+    # Discord Botとは別のスレッド（裏側）でWebサーバーを起動する
+    t = Thread(target=run_flask)
+    t.start()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
@@ -27,6 +48,9 @@ async def on_message(message):
     if "うお" in message.content:
         # 即刻GIFを送信
         await message.channel.send(GIF_URL)
+
+# 最初にWebサーバーを起動
+keep_alive()
 
 # 事前準備で取得したBotのトークンを入力
 client.run(TOKEN)
