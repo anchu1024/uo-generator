@@ -22,16 +22,20 @@ def keep_alive():
     t = Thread(target=run_flask)
     t.start()
 
-TOKEN = os.getenv("DISCORD_TOKEN")
+# ここで先にWebサーバーを裏側で起動してしまう！
+keep_alive()
 
+
+# ==========================================
+# 2. Discord Botの設定
+# ==========================================
 # Botのインテント（権限）を設定
 intents = discord.Intents.default()
 intents.message_content = True  # メッセージの内容を読み取るために必須
 
 client = discord.Client(intents=intents)
 
-# 送りたいGIFのURL（Discord上に表示したいGIFのリンク）
-# ※GIPHYやTenorのリンク、またはDiscordにアップロードした画像のURLなど
+# 送りたいGIFのURL
 GIF_URL = "https://raw.githubusercontent.com/anchu1024/uo-generator/7661fcbb07bcdb51abafc5d4fb751c18dd38447b/uo.gif"
 
 @client.event
@@ -49,8 +53,9 @@ async def on_message(message):
         # 即刻GIFを送信
         await message.channel.send(GIF_URL)
 
-# 最初にWebサーバーを起動
-keep_alive()
 
-# 事前準備で取得したBotのトークンを入力
+# ==========================================
+# 3. 最後にDiscord Botを起動
+# ==========================================
+TOKEN = os.getenv("DISCORD_TOKEN")
 client.run(TOKEN)
