@@ -52,7 +52,7 @@ async def on_message(message):
     if "うお" in message.content:
         # 即刻GIFを送信
         await message.channel.send(GIF_URL["uo"])
-    if "仮面" in message.content:
+    if "仮面" in message.content or "平均値" in message.content:
         await message.channel.send(GIF_URL["kamen"])
 
 # ==========================================
