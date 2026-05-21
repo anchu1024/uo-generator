@@ -112,10 +112,9 @@ async def on_message(message):
     
     guild_id = message.guild.id  # 現在のサーバーIDを取得
     if message.content.startswith("::set "):
-        if not message.author.guild_permissions.administrator:
-            await message.reply("このコマンドはサーバーの管理者しか使用できません。")
-            return
-        
+        # コマンドを打った本人（メッセージの送信者）のIDを取得
+        author_id = message.author.id
+
         target_name = message.content[6:].strip()
         if not target_name:
             await message.reply("ユーザー名を入力してください。")
@@ -131,6 +130,9 @@ async def on_message(message):
             target_member = discord.utils.get(message.guild.members, name=target_name)
 
         if target_member:
+            if target_member.id == author_id:
+                await message.reply("自分で自分に関する操作はできないよ...")
+                return
             # このサーバーのリストがまだ辞書になければ初期化
             if guild_id not in GUILD_TARGETS:
                 GUILD_TARGETS[guild_id] = set()
@@ -146,10 +148,7 @@ async def on_message(message):
         return
     
     if message.content.startswith("::unset "):
-        if not message.author.guild_permissions.administrator:
-            await message.reply("このコマンドはサーバーの管理者しか使用できません。")
-            return
-
+        author_id = message.author.id
         target_name = message.content[8:].strip()
         
         # 💡 解除時も同様に検索を確実に
@@ -161,13 +160,17 @@ async def on_message(message):
         except Exception:
             target_member = discord.utils.get(message.guild.members, name=target_name)
 
-        if target_member and guild_id in GUILD_TARGETS and target_member.id in GUILD_TARGETS[guild_id]:
-            GUILD_TARGETS[guild_id].remove(target_member.id)
-            await async_save_json(GUILD_TARGETS)  # データを保存
-            await message.reply(f"{target_member.display_name} をこのサーバーのリストから解除しました。")
-        else:
-            await message.reply(f"「{target_name}」は登録されていません。")
-        return
+        if target_member:
+            if target_member.id == author_id:
+                await message.reply("自分で自分に関する操作はできないよ...")
+                return
+            if guild_id in GUILD_TARGETS and target_member.id in GUILD_TARGETS[guild_id]:
+                GUILD_TARGETS[guild_id].remove(target_member.id)
+                await async_save_json(GUILD_TARGETS)  # データを保存
+                await message.reply(f"{target_member.display_name} をこのサーバーのリストから解除しました。")
+            else:
+                await message.reply(f"「{target_name}」は登録されていません。")
+            return
     
     # ------------------------------------------
     # 🐟 通常のメッセージ判定
