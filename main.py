@@ -1,6 +1,6 @@
 import os
 import discord
-from flask import Flask
+from flask import Flask, request, abort
 from threading import Thread
 
 # ==========================================
@@ -10,6 +10,10 @@ app = Flask('')
 
 @app.route('/')
 def home():
+    secret_token = os.getenv("WEB_SECRET_TOKEN")
+    user_token = request.args.get('token')
+    if not secret_token or user_token != secret_token:
+        abort(403)  # 不正アクセスとして弾く！
     # 叩き起こしサービスがアクセスしてきたら「生きてるよ」と返す
     return "Botは正常に稼働しています！"
 
