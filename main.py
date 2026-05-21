@@ -134,9 +134,6 @@ async def on_message(message):
             target_member = discord.utils.get(message.guild.members, name=target_name)
 
         if target_member:
-            """if target_member.id == author_id:
-                await message.reply("自分で自分に関する操作はできないよ...")
-                return"""
             # このサーバーのリストがまだ辞書になければ初期化
             if guild_id not in GUILD_TARGETS:
                 GUILD_TARGETS[guild_id] = set()
@@ -165,9 +162,6 @@ async def on_message(message):
             target_member = discord.utils.get(message.guild.members, name=target_name)
 
         if target_member:
-            """if target_member.id == author_id:
-                await message.reply("自分で自分に関する操作はできないよ...")
-                return"""
             if guild_id in GUILD_TARGETS and target_member.id in GUILD_TARGETS[guild_id]:
                 GUILD_TARGETS[guild_id].remove(target_member.id)
                 await async_save_json(GUILD_TARGETS)  # データを保存
@@ -192,6 +186,8 @@ async def on_message(message):
         await message.channel.send(GIF_URL["kamen"])
     if "どわ" in message.content:
         await message.channel.send(GIF_URL["dowa"])
+    if "土下座" in message.content:
+        await message.channel.send("Reminder: 関の土下座")
 
 # ==========================================
 # 3. 最後にDiscord Botを起動
