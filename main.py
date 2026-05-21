@@ -187,7 +187,7 @@ async def on_message(message):
     if "どわ" in message.content:
         await message.channel.send(GIF_URL["dowa"])
     if "土下座" in message.content:
-        await message.channel.send("Reminder: 関の土下座")
+        await message.channel.send("Reminder: 匿名Sの土下座")
 
 # ==========================================
 # 3. 最後にDiscord Botを起動
