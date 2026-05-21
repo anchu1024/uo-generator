@@ -44,7 +44,11 @@ intents.members = True
 client = discord.Client(intents=intents)
 
 # 送りたいGIFのURL
-GIF_URL = {"uo": "https://raw.githubusercontent.com/anchu1024/uo-generator/7661fcbb07bcdb51abafc5d4fb751c18dd38447b/uo.gif", "kamen": "https://raw.githubusercontent.com/anchu1024/uo-generator/d0943f11d73ac6d91b2eb2a99beea8aa08250ebd/kamen.gif"}
+GIF_URL = {
+    "uo": "https://raw.githubusercontent.com/anchu1024/uo-generator/7661fcbb07bcdb51abafc5d4fb751c18dd38447b/uo.gif",
+    "kamen": "https://raw.githubusercontent.com/anchu1024/uo-generator/d0943f11d73ac6d91b2eb2a99beea8aa08250ebd/kamen.gif",
+    "dowa": "https://raw.githubusercontent.com/anchu1024/uo-generator/31bcddac47307661a760417d3b81651d53875057/dowa.gif"
+}
 
 PAT = os.getenv("GITHUB_PAT")
 GIST_ID = os.getenv("GIST_ID")
@@ -186,6 +190,8 @@ async def on_message(message):
         await message.channel.send(GIF_URL["uo"])
     if "仮面" in message.content or "平均値" in message.content:
         await message.channel.send(GIF_URL["kamen"])
+    if "どわ" in message.content:
+        await message.channel.send(GIF_URL["dowa"])
 
 # ==========================================
 # 3. 最後にDiscord Botを起動
