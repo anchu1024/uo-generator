@@ -177,7 +177,7 @@ async def on_message(message):
     # ------------------------------------------
     # このサーバー用のターゲットリストが存在し、かつ発言者がその中にいるか判定
     if guild_id in GUILD_TARGETS and message.author.id in GUILD_TARGETS[guild_id]:
-        await message.reply(f"うおww\n{GIF_URL["uo"]}")
+        await message.reply("うおww")
         return
 
     # メッセージのテキストに「うお」が含まれているか判定
