@@ -41,7 +41,10 @@ keep_alive()
 # APIキーをリストとして読み込む
 API_KEYS = [
     os.getenv("GEMINI_API_KEY_1"),
-    os.getenv("GEMINI_API_KEY_2")
+    os.getenv("GEMINI_API_KEY_2"),
+    os.getenv("GEMINI_API_KEY_3"),
+    os.getenv("GEMINI_API_KEY_4"),
+    os.getenv("GEMINI_API_KEY_5")
 ]
 API_KEYS = [k for k in API_KEYS if k]
 
