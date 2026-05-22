@@ -227,11 +227,14 @@ async def on_message(message):
     is_random_trigger = random.random() < 0.001  # 0.1% の確率で乱入
 
     if is_mentioned or is_random_trigger:
+        print(f"【デバッグ】トリガー検知！ メンションされた: {is_mentioned}, ランダム: {is_random_trigger}")
         # メンション部分を削って綺麗なテキストにする
         prompt = message.content.replace(f"<@{client.user.id}>", "").strip()
+        print(f"【デバッグ】受け取ったプロンプトの中身: '{prompt}'")
         
         # メンションされたけど中身が空、かつランダム起動でもない場合はスルー
         if not prompt and not is_random_trigger:
+            print("【デバッグ】プロンプトが空のため終了します。")
             return
         
         # もし文字が空のランダム起動（絵文字だけ等）なら、おじさん側から適当に話しかけさせる
