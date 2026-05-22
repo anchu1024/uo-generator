@@ -254,12 +254,13 @@ async def on_message(message):
             return
         user_cooldowns[user_id] = now
 
-        print(API_KEYS)
+        print(f"【デバッグ】有効なAPIキーの数: {len(API_KEYS)}個", flush=True)
 
         # APIキーが登録されているかチェック
         if not API_KEYS:
+            print("【警告】APIキーが設定されていません。", flush=True)
             return
-        # 💡 デッドロック防止のため、typing() のブロックを一旦排除します
+            
         channel_id = message.channel.id
         if channel_id not in channel_histories:
             channel_histories[channel_id] = []
@@ -280,13 +281,15 @@ async def on_message(message):
 
                 formatted_prompt = f"発言者({message.author.display_name}): {prompt}"
 
-                # 💡 このAPI呼び出し自体が「同期処理」なので、ここで数秒間ログが止まります
-                response = chat.send_message(formatted_prompt)
+                # 💡 typing状態を見せつつ、重い同期処理をスレッドプールに逃がしてデッドロックを防止！
+                async with message.channel.typing():
+                    response = await asyncio.to_thread(chat.send_message, formatted_prompt)
+                    
                 reply_text = response.text
                 print(f"【デバッグ】Geminiからの応答を受信しました", flush=True)
 
-                # 履歴を10メッセージ（5往復）に制限
-                updated_history = chat.get_history()
+                # 💡 履歴の取得を `get_history()` から正しいプロパティ名 `history` に修正
+                updated_history = chat.history
                 MAX_MESSAGES = 10
                 while len(updated_history) > MAX_MESSAGES:
                     updated_history.pop(0)
@@ -304,7 +307,8 @@ async def on_message(message):
                 continue
 
         if not response_success:
-            await message.channel.send(f"【エラー】おじさん全滅。最後のエラー")
+            print(f"【エラー】おじさん全滅。最後のエラー: {last_error}", flush=True)
+            await message.channel.send(f"【エラー】おじさん全滅しちゃった（涙）💦 原因コレみたい： `{last_error}`")
         
 # ==========================================
 # 3. 最後にDiscord Botを起動
