@@ -143,6 +143,8 @@ async def on_message(message):
     # Bot自身のメッセージには反応しないようにする（無限ループ防止）
     if message.guild is None or message.author == client.user:
         return
+    # 【テスト1】メッセージが届いているかどうかの確認
+    print(f"【受信ログ】送信者: {message.author.name} | 内容: '{message.content}'", flush=True)
     
     guild_id = message.guild.id  # 現在のサーバーIDを取得
     if message.content.startswith("::set "):
@@ -224,6 +226,7 @@ async def on_message(message):
     # ------------------------------------------
     # 反応する条件の判定
     is_mentioned = client.user.mentioned_in(message)
+    print(f"【メンション判定】結果: {is_mentioned}", flush=True)
     is_random_trigger = random.random() < 0.001  # 0.1% の確率で乱入
 
     if is_mentioned or is_random_trigger:
