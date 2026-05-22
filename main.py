@@ -2,9 +2,11 @@ import os
 import asyncio
 import requests
 import json
+import random
 import discord
 from flask import Flask, request, abort
 from threading import Thread
+import google.generativeai as genai
 
 # ==========================================
 # 1. 叩き起こされるためのWebサーバー設定 (Flask)
@@ -36,6 +38,31 @@ keep_alive()
 # ==========================================
 # 2. Discord Botの設定
 # ==========================================
+# APIキーをリストとして読み込む
+API_KEYS = [
+    os.getenv("GEMINI_API_KEY_1"),
+    os.getenv("GEMINI_API_KEY_2")
+]
+API_KEYS = [k for k in API_KEYS if k]
+
+# チャンネルごとの会話履歴を保存する辞書
+channel_histories = {}
+
+# おじさん構文の指示
+SYSTEM_INSTRUCTION = (
+    "あなたはLINEで若者にメッセージを送る、ちょっとお茶目で痛々しい50代の『おじさん』です。"
+    "以下の【おじさん構文のルール】を完璧に守って、フランクに会話してください。"
+    "\n\n"
+    "【おじさん構文のルール】\n"
+    "1. 文頭は必ず『〇〇ちゃん、お疲れ様〜❗✨』や『〇〇クン、ヤッホー（笑）🎵』など、相手の名前（またはちゃん/クン）と挨拶から始めてください。\n"
+    "2. 句読点（、や。）の代わりに、絵文字や顔文字、記号を大量に挟んでください（例：おじさん、頑張っちゃうぞ（ちゅ） 😘👍 💦）。\n"
+    "3. カタカナを不自然に多用してください。特に『〜カナ？』『〜ダネ！』『〜カナピ（悲しい）』『〜のカナ（汗）』などを文末に使ってください。\n"
+    "4. 聞かれてもいないのに『今日は会社で怒られちゃった（汗）大人の世界は大変だヨ（泣）』『今から美味しいラーメン、食べちゃうゾ🎵』といった自分の近況報告（生存報告）を挟んでください。\n"
+    "5. 相手を心配するフリをして『無理しちゃダメだゾ（汗）体調崩したら、おじさん心配で夜も眠れないヨ（泣）』などの過剰な優しさをアピールしてください。\n"
+    "6. AIらしい真面目な敬語や、冷たい機械的な返答は絶対に禁止です。常にちょっと下心と哀愁のある、テンション高めのLINE風の文章にしてください。"
+)
+
+
 # Botのインテント（権限）を設定
 intents = discord.Intents.default()
 intents.message_content = True  # メッセージの内容を読み取るために必須
@@ -101,6 +128,9 @@ async def async_load_json():
     return await loop.run_in_executor(None, load_json)
 
 GUILD_TARGETS = {}
+
+# ユーザーごとのクールダウン管理用の辞書 (5秒制限)
+user_cooldowns = {}
 
 @client.event
 async def on_ready():
@@ -188,6 +218,83 @@ async def on_message(message):
         await message.channel.send(GIF_URL["dowa"])
     if "土下座" in message.content:
         await message.channel.send("Reminder: 匿名Sの土下座")
+
+    # ------------------------------------------
+    # 👴 AIおじさん自動乱入・会話セクション
+    # ------------------------------------------
+    # 反応する条件の判定
+    is_mentioned = client.user.mentioned_in(message)
+    is_random_trigger = random.random() < 0.001  # 0.1% の確率で乱入
+
+    if is_mentioned or is_random_trigger:
+        # メンション部分を削って綺麗なテキストにする
+        prompt = message.content.replace(f"<@{client.user.id}>", "").strip()
+        
+        # メンションされたけど中身が空、かつランダム起動でもない場合はスルー
+        if not prompt and not is_random_trigger:
+            return
+        
+        # もし文字が空のランダム起動（絵文字だけ等）なら、おじさん側から適当に話しかけさせる
+        if not prompt:
+            prompt = "ヤッホー！最近どう？"
+
+        # 手動クールダウン処理 (5秒に1回制限)
+        now = asyncio.get_event_loop().time()
+        user_id = message.author.id
+        if user_id in user_cooldowns and now - user_cooldowns[user_id] < 5:
+            # クールダウン中はおじさん構文でやんわり拒否
+            await message.reply(f"{message.author.display_name}ちゃん、お疲れ様〜❗✨ちょっとチャットのスピードが早すぎるのカナ（汗）💦おじさん、目が回っちゃいそう（苦笑）少し待ってネ😘👍")
+            return
+        user_cooldowns[user_id] = now
+
+        # APIキーが登録されているかチェック
+        if not API_KEYS:
+            return
+
+        async with message.channel.typing():
+            channel_id = message.channel.id
+            if channel_id not in channel_histories:
+                channel_histories[channel_id] = []
+
+            response_success = False
+            last_error = None
+
+            # 2本のAPIキーで順番に試行
+            for i, api_key in enumerate(API_KEYS):
+                try:
+                    genai.configure(api_key=api_key)
+
+                    chat = genai.GenerativeModel(
+                        model_name="gemini-2.5-flash",
+                        system_instruction=SYSTEM_INSTRUCTION
+                    ).start_chat(history=channel_histories[channel_id])
+
+                    # おじさんの名前に変えて応答させやすくするため、プロンプトの前に発言者名を添える
+                    formatted_prompt = f"発言者({message.author.display_name}): {prompt}"
+
+                    response = chat.send_message(formatted_prompt)
+                    reply_text = response.text
+
+                    # 履歴を10メッセージ（5往復）に制限
+                    updated_history = chat.get_history()
+                    MAX_MESSAGES = 10
+                    while len(updated_history) > MAX_MESSAGES:
+                        updated_history.pop(0)
+
+                    channel_histories[channel_id] = updated_history
+                    
+                    # メッセージへの返信として送信
+                    await message.reply(reply_text)
+                    response_success = True
+                    break
+
+                except Exception as e:
+                    print(f"APIキー {i+1}番目でエラー発生、次を試します: {e}")
+                    last_error = e
+                    continue
+
+            if not response_success:
+                await message.channel.send("【エラー】おじさん全滅")
 
 # ==========================================
 # 3. 最後にDiscord Botを起動
