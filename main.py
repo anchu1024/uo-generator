@@ -254,6 +254,7 @@ async def on_message(message):
             return
         user_cooldowns[user_id] = now
 
+        print(API_KEYS)
 
         # APIキーが登録されているかチェック
         if not API_KEYS:
