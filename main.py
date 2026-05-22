@@ -254,55 +254,57 @@ async def on_message(message):
             return
         user_cooldowns[user_id] = now
 
+
         # APIキーが登録されているかチェック
         if not API_KEYS:
             return
+        # 💡 デッドロック防止のため、typing() のブロックを一旦排除します
+        channel_id = message.channel.id
+        if channel_id not in channel_histories:
+            channel_histories[channel_id] = []
 
-        async with message.channel.typing():
-            channel_id = message.channel.id
-            if channel_id not in channel_histories:
-                channel_histories[channel_id] = []
+        response_success = False
+        last_error = None
 
-            response_success = False
-            last_error = None
+        # 2本のAPIキーで順番に試行
+        for i, api_key in enumerate(API_KEYS):
+            try:
+                print(f"【デバッグ】APIキー {i+1}番目で通信開始...", flush=True)
+                genai.configure(api_key=api_key)
 
-            # 2本のAPIキーで順番に試行
-            for i, api_key in enumerate(API_KEYS):
-                try:
-                    genai.configure(api_key=api_key)
+                chat = genai.GenerativeModel(
+                    model_name="gemini-2.5-flash",
+                    system_instruction=SYSTEM_INSTRUCTION
+                ).start_chat(history=channel_histories[channel_id])
 
-                    chat = genai.GenerativeModel(
-                        model_name="gemini-2.5-flash",
-                        system_instruction=SYSTEM_INSTRUCTION
-                    ).start_chat(history=channel_histories[channel_id])
+                formatted_prompt = f"発言者({message.author.display_name}): {prompt}"
 
-                    # おじさんの名前に変えて応答させやすくするため、プロンプトの前に発言者名を添える
-                    formatted_prompt = f"発言者({message.author.display_name}): {prompt}"
+                # 💡 このAPI呼び出し自体が「同期処理」なので、ここで数秒間ログが止まります
+                response = chat.send_message(formatted_prompt)
+                reply_text = response.text
+                print(f"【デバッグ】Geminiからの応答を受信しました", flush=True)
 
-                    response = chat.send_message(formatted_prompt)
-                    reply_text = response.text
+                # 履歴を10メッセージ（5往復）に制限
+                updated_history = chat.get_history()
+                MAX_MESSAGES = 10
+                while len(updated_history) > MAX_MESSAGES:
+                    updated_history.pop(0)
 
-                    # 履歴を10メッセージ（5往復）に制限
-                    updated_history = chat.get_history()
-                    MAX_MESSAGES = 10
-                    while len(updated_history) > MAX_MESSAGES:
-                        updated_history.pop(0)
+                channel_histories[channel_id] = updated_history
+                
+                # メッセージへの返信として送信
+                await message.reply(reply_text)
+                response_success = True
+                break
 
-                    channel_histories[channel_id] = updated_history
-                    
-                    # メッセージへの返信として送信
-                    await message.reply(reply_text)
-                    response_success = True
-                    break
+            except Exception as e:
+                print(f"APIキー {i+1}番目でエラー発生、次を試します: {e}", flush=True)
+                last_error = e
+                continue
 
-                except Exception as e:
-                    print(f"APIキー {i+1}番目でエラー発生、次を試します: {e}")
-                    last_error = e
-                    continue
-
-            if not response_success:
-                await message.channel.send("【エラー】おじさん全滅")
-
+        if not response_success:
+            await message.channel.send(f"【エラー】おじさん全滅。最後のエラー")
+        
 # ==========================================
 # 3. 最後にDiscord Botを起動
 # ==========================================
