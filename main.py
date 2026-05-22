@@ -143,8 +143,6 @@ async def on_message(message):
     # Bot自身のメッセージには反応しないようにする（無限ループ防止）
     if message.guild is None or message.author == client.user:
         return
-    # 【テスト1】メッセージが届いているかどうかの確認
-    print(f"【受信ログ】送信者: {message.author.name} | 内容: '{message.content}'", flush=True)
     
     guild_id = message.guild.id  # 現在のサーバーIDを取得
     if message.content.startswith("::set "):
