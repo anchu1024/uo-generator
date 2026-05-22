@@ -230,6 +230,7 @@ async def on_message(message):
     is_random_trigger = random.random() < 0.001  # 0.1% の確率で乱入
 
     if is_mentioned or is_random_trigger:
+        await message.channel.send("はい")
         print(f"【デバッグ】トリガー検知！ メンションされた: {is_mentioned}, ランダム: {is_random_trigger}")
         # メンション部分を削って綺麗なテキストにする
         prompt = message.content.replace(f"<@{client.user.id}>", "").strip()
